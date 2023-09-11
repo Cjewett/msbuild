@@ -5,7 +5,9 @@ Param(
   [ValidateSet('Debug','Release')]
   [string] $configuration = "Debug",
   [ValidateSet('Core','Desktop', 'Detect', 'Full')]
-  [string] $runtime = "Detect"
+  [string] $runtime = "Detect",
+  [string] $bootstrapDirectory = "",
+  [bool] $makeBackup = $true
 )
 
 Set-StrictMode -Version "Latest"
@@ -17,7 +19,7 @@ function Copy-WithBackup ($origin, $destinationSubFolder = "") {
 
     $backupInto = [IO.Path]::Combine($BackupFolder, $destinationSubFolder)
 
-    if (Test-Path $destinationPath -PathType Leaf) {
+    if (($makeBackup) -and (Test-Path $destinationPath -PathType Leaf)) {
         # Back up previous copy of the file
         if (!(Test-Path $backupInto)) {
             [system.io.directory]::CreateDirectory($backupInto)
@@ -72,7 +74,12 @@ if ($runtime -eq "Desktop") {
     $targetFramework = "net8.0"
 }
 
-$bootstrapBinDirectory = "artifacts\bin\MSBuild.Bootstrap\$configuration\$targetFramework"
+# If bootstrap directory is not defined in parameters, use the default location
+if ($bootstrapDirectory -eq "") {
+    $bootstrapDirectory = "artifacts\bin\MSBuild.Bootstrap" 
+}
+
+$bootstrapBinDirectory = "$bootstrapDirectory\$configuration\$targetFramework"
 
 $filesToCopyToBin = @(
     FileToCopy "$bootstrapBinDirectory\Microsoft.Build.dll"
