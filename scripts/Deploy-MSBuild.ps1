@@ -17,9 +17,9 @@ function Copy-WithBackup ($origin, $destinationSubFolder = "") {
     $directoryPart = [IO.Path]::Combine($destination, $destinationSubFolder, $origin.IntermediaryDirectories)
     $destinationPath = Join-Path -Path $directoryPart (Split-Path $origin.SourceFile -leaf)
 
-    $backupInto = [IO.Path]::Combine($BackupFolder, $destinationSubFolder)
-
     if (($makeBackup) -and (Test-Path $destinationPath -PathType Leaf)) {
+        $backupInto = [IO.Path]::Combine($BackupFolder, $destinationSubFolder)
+
         # Back up previous copy of the file
         if (!(Test-Path $backupInto)) {
             [system.io.directory]::CreateDirectory($backupInto)
@@ -47,10 +47,12 @@ function FileToCopy([string] $sourceFileRelativeToRepoRoot, [string] $intermedia
 
 # TODO: find most-recently-built MSBuild and make it default $configuration
 
-$BackupFolder = New-Item (Join-Path $destination -ChildPath "Backup-$(Get-Date -Format FileDateTime)") -itemType directory -ErrorAction Stop
-
 Write-Verbose "Copying $configuration MSBuild to $destination"
-Write-Host "Existing MSBuild assemblies backed up to $BackupFolder"
+
+if ($makeBackup) {
+    $BackupFolder = New-Item (Join-Path $destination -ChildPath "Backup-$(Get-Date -Format FileDateTime)") -itemType directory -ErrorAction Stop
+    Write-Host "Existing MSBuild assemblies backed up to $BackupFolder"
+}
 
 if ($runtime -eq "Detect") {
     if ($destination -like "*dotnet*sdk*") {
