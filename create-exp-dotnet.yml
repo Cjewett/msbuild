@@ -1,0 +1,71 @@
+# Runs MSBuild performance tests.
+trigger: none # Prevents this pipeline from triggering on check-ins
+pr: none # don't run this on PR as well
+
+parameters:
+  # BuildID from the MSBuild pipeline 
+  - name: MSBuildBuildID
+    type: string
+    default: ""
+  # BuildID from the Installer pipeline 
+  - name: InstallerBuildID
+    type: string
+    default: ""
+
+pool:
+  vmImage: windows-latest
+
+steps:
+
+# Download build artifacts from MSBuild pipeline
+- task: DownloadBuildArtifacts@1
+  inputs:
+    buildType: specific
+    project: DevDiv
+    pipeline: 9434 # MSBuild Build CI
+    buildVersionToDownload: specific.
+    buildId: ${{parameters.MSBuildBuildID}} 
+    downloadType: single 
+    artifactName: bin
+    downloadPath: '$(System.ArtifactsDirectory)/msbuild/artifacts/bin'
+    itemPattern: "MSBuild.Bootstrap/**"
+
+# Download build artifacts from Installer pipeline
+- task: DownloadBuildArtifacts@1
+  inputs:
+    buildType: specific
+    project: dnceng
+    pipeline: 286 # Installer Build CI
+    buildVersionToDownload: specific
+    buildId: ${{parameters.InstallerBuildID}} 
+    downloadType: single 
+    artifactName: BlobArtifacts
+    downloadPath: '$(System.ArtifactsDirectory)/installer'
+    itemPattern: "**/dotnet-sdk-*.zip"
+
+- powershell: |
+    mkdir '$(Pipeline.Workspace)/exp-dotnet'
+    mkdir '$(Pipeline.Workspace)/exp-dotnet/artifacts'
+    
+    $installerWin64ZipFile = Get-ChildItem -File -Path $(System.ArtifactsDirectory)/installer -Filter "*-win-x64.zip"
+    $dotnetVersion = $installerZipFile.Name[0].replace('dotnet-sdk-','').replace('-win-x64.zip', '')
+
+    Expand-Archive $installerZipFile.Name[0] -DestinationPath '$(Pipeline.Workspace)/exp-dotnet'
+
+    $(Build.SourcesDirectory)/scripts/DeployMSBuild.ps1 `
+      -destination $(Pipeline.Workspace)/exp-dotnet/dotnet-sdk-$(dotnetVersion)-win-x64\sdk\($dotnetVersion)`
+      -makeBackup $false
+    
+    Compress-Archive 
+      -Path $(Pipeline.Workspace)/exp-dotnet/dotnet-sdk-$(dotnetVersion)-win-x64 `
+      -DestinationPath $(Pipeline.Workspace)/exp-dotnet/artifacts/dotnet-sdk-$(dotnetVersion)-win-x64.zip `
+
+  displayName: Dogfood msbuild dlls to dotnet sdk
+
+- task: PublishPipelineArtifact@1
+  inputs:
+    targetPath: '$(Pipeline.Workspace)/exp-dotnet/artifacts'
+    artifactName: ExperimentalDotnet
+    parallel: true
+  condition: always()
+  displayName: Publish crank assests artifacts
