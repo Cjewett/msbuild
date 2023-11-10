@@ -55,6 +55,7 @@ namespace Microsoft.Build.Tasks
                         {
                             string link = fullPath.Substring(definingProjectDirectory.Length);
                             ITaskItem outputItem = new TaskItem(item);
+                            
                             outputItem.SetMetadata("Link", link);
 
                             outputItems.Add(outputItem);
