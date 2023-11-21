@@ -5,13 +5,9 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
   </PropertyGroup>
-  
-  <ItemGroup>
-    <ProjectCachePlugin Include="C:\Github\msbuild\artifacts\bin\DistributedCachePlugin\Debug\net8.0\DistributedCachePlugin.dll" />
-  </ItemGroup>
 
-  <!--<ItemGroup>
+  <ItemGroup>
     <ProjectCachePlugin Include="C:\Github\msbuild\artifacts\bin\Samples\ProjectCachePlugin\Debug\net8.0\ProjectCachePlugin.dll" />
-  </ItemGroup>-->
+  </ItemGroup>
   
 </Project>
